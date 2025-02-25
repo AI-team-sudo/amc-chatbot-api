@@ -1,0 +1,41 @@
+# .github/workflows/deploy.yml
+name: Deploy FastAPI App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Run tests
+      run: |
+        pip install pytest
+        pytest
+
+    - name: Build and push Docker image
+      if: github.ref == 'refs/heads/main'
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      run: |
+        docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+        docker build -t amc-chatbot-api .
+        docker tag amc-chatbot-api $DOCKER_USERNAME/amc-chatbot-api:latest
+        docker push $DOCKER_USERNAME/amc-chatbot-api:latest
